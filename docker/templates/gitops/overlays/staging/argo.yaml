@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: st-smartnas4-static-assets
+spec:
+  project: devops
+  destination:
+    namespace: 'devops-smartnas-ns'
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: 'smartnas4/static-assets/overlays/staging'
+    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smartnas/smartnas-gitops.git'
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

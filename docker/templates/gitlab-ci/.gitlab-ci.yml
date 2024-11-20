@@ -1,0 +1,119 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  PROJECT_NAME: static-assets
+  DOCKER_LOGIN_SCRIPT: docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  DOCKER_FILE: assets/nginx-unit/Dockerfile
+  PIPELINE_DEBUG: "true"
+  MANUAL_TRIGGER: "false"
+  UNATTENDED: "false"
+  REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE/$PROJECT_NAME
+  RELEASE_PREFIX: ""
+  KUZT_MANIFEST_PATH: smartnas4/$PROJECT_NAME/overlays
+  GIT_PROD_BRANCH: master
+  GIT_STAGING_BRANCH: main
+  GITLAB_CI_USER: ci-operator
+  GITLAB_CI_EMAIL: ci-operator
+  GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/smartaxiatakh/devops/smartnas/smartnas-gitops.git
+  GIT_APPS_REPO_URL: https://$GITLAB_CI_USER:$GIT_APPS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - docker_cache/
+
+build-docker-image:
+  image: docker:stable
+  stage: build
+  extends: .auto_cancel
+  rules:
+    - if: $MANUAL_TRIGGER == "true"
+    - if: $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH
+    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
+  services:
+    - docker:dind
+  before_script:
+    - $DOCKER_LOGIN_SCRIPT
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "$GIT_PROD_BRANCH" ]; then
+        export PIPELINE_ENV="production"
+      elif [ "$CI_COMMIT_REF_NAME" == "$GIT_STAGING_BRANCH" ]; then
+        export PIPELINE_ENV="staging"
+      else
+        export PIPELINE_ENV="env"
+      fi
+    - |
+      export TAG_LATEST=unit-$PIPELINE_ENV-latest
+      export TAG_IID=unit-$PIPELINE_ENV-$CI_PIPELINE_IID
+      export IMAGE_LATEST=$REGISTRY_BASE_IMAGE:$TAG_LATEST
+      export DOCKER_BUILDKIT=1
+      export BUILDKIT_PROGRESS=plain
+      export BUILDKIT_INLINE_CACHE=1
+  script:
+    - mkdir -p docker_cache
+    - |
+      if [ -f docker_cache/image_cache.tar ]; then
+        echo "Loading cached image..."
+        docker load -i docker_cache/image_cache.tar
+      else
+        echo "No cache found, building from scratch..."
+      fi
+    - |
+      echo ">>> Run building image..." | tee -a pipeline_log.txt
+      docker build \
+      --cache-from $IMAGE_LATEST \
+      --build-arg BUILDKIT_INLINE_CACHE=1 \
+      --tag $IMAGE_LATEST \
+      --file $DOCKER_FILE \
+      "assets/"
+      docker save $IMAGE_LATEST > docker_cache/image_cache.tar
+      docker push $IMAGE_LATEST
+      export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_LATEST | cut -d '@' -f 2)
+    - |
+      echo "Image build pushed successfully!" | tee -a pipeline_log.txt
+      echo "PIPELINE_ENV=$PIPELINE_ENV" >> build_vars.env
+      echo "TAG_LATEST=$TAG_LATEST" >> build_vars.env   
+      echo "TAG_IID=$TAG_IID" >> build_vars.env   
+      echo "DIGEST=$DIGEST" >> build_vars.env
+  artifacts:
+    paths:
+      - build_vars.env
+      - pipeline_log.txt
+
+deploy-staging:
+  image: node:latest
+  stage: deploy
+  when: always
+  environment:
+    name: staging
+  rules:
+    - if: $MANUAL_TRIGGER == "true"
+    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - |
+      echo ">>> Build Variables"
+      cat build_vars.env || true
+      source build_vars.env
+    - |
+      git config --global user.name "$GITLAB_CI_USER"
+      git config --global user.email "$GITLAB_CI_EMAIL"
+    - |
+      export REGISTRY_IMAGE_URL=$REGISTRY_BASE_IMAGE
+      export IMAGE_LATEST_DIGEST=$DIGEST
+      export IMAGE_RELEASE_TAG=$TAG_LATEST
+      export IMAGE_RELEASE_TAG_IID=$TAG_IID
+      export COMMIT_MESSAGE=$(git log --format=%B -n 1 $CI_COMMIT_SHORT_SHA)
+  script:
+    - git clone $GITOPS_REPO_URL gitops_repo && cd gitops_repo
+    - |
+      awk -f "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/update_digest.awk" "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml" > temp \
+      && mv temp "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml"
+    - git add $KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml
+    - git commit -m "Release message $COMMIT_MESSAGE"
+    - git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID"
+    - git push origin main
+    - git push origin $IMAGE_RELEASE_TAG_IID

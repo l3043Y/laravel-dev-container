@@ -1,0 +1,26 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+      args:
+        USER_ID: $UID
+        GROUP_ID: $GID
+    ports:
+      - 8000:8080
+    volumes:
+      - ..:/var/www/html
+
+  init-project:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: init-project
+      args:
+        USER_ID: $UID
+        GROUP_ID: $GID
+    ports:
+      - 8000:8080
+    volumes:
+      - ../:/var/www/html

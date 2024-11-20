@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: st-
+labels:
+  - includeSelectors: true
+    pairs:
+      app: smartnas4-static-assets
+      environment: staging
+
+namespace: devops-smartnas-ns
+
+resources:
+#- ingress.yaml
+- deployment.yaml
+- svc.yaml
+- svc-ext-access.yaml
+
+images:
+  - name: apps-image-latest
+    newName: registry.gitlab.com/smartaxiatakh/devops/smartnas/smartnas-v4/static-assets
+    newTag: unit-staging-latest
+    digest: sha256:6d41d7946a3a443433d4ce0b7cc5258be8a3dda790b412308064a0a645aaf5b0
+  - name: smartnas3-busybox
+    newName: busybox
+    newTag: 1.36.1-glibc
+    digest: sha256:50aa4698fa6262977cff89181b2664b99d8a56dbca847bf62f2ef04854597cf8b7e4be4e9be38af6effd4f2271a93679de43bf8a634245d
