@@ -1,7 +1,8 @@
 services:
   php:
+    container_name: laravel-dev
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: development
       args:
@@ -13,6 +14,7 @@ services:
       - ../:/var/www/html
 
   init-project:
+    container_name: init-project
     build:
       context: ..
       dockerfile: docker/Dockerfile
