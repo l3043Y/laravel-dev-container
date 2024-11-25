@@ -26,3 +26,18 @@ services:
       - 8000:8080
     volumes:
       - ../:/var/www/html
+
+  postgres:
+    image: bitnami/postgresql:latest
+    container_name: dev_postgres
+    environment:
+        POSTGRESQL_USERNAME: dev_user
+        POSTGRESQL_PASSWORD: dev_password
+        POSTGRESQL_DATABASE: dev_db
+    ports:
+        - "5432:5432"
+    volumes:
+        - postgres_data:/bitnami/postgresql
+
+# volumes:
+#   postgres_data:
