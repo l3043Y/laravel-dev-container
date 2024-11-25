@@ -18,3 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [ForceJsonResponse::class]);
     });
 ```
+
+Register Laravel IDE Helper [barryvdh/laravel-ide-helper]('https://github.com/barryvdh/laravel-ide-helper')
+

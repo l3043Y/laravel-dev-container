@@ -26,6 +26,7 @@ composer require --ignore-platform-reqs --no-cache \
     spatie/laravel-data
 
 composer require --dev \
-    laravel/telescope
+    barryvdh/laravel-ide-helper \
+    laravel/telescope 
 
 alias
