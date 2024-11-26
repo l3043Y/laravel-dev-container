@@ -5,11 +5,14 @@ FROM serversideup/php:8.3-fpm-nginx-bookworm AS base
 USER root
 
 RUN install-php-extensions intl xsl bcmath
+USER www-data
+
 ############################################
 # Init Project
 ############################################
 FROM base AS init-project
 USER root
+
 
 ARG USER_ID
 ARG GROUP_ID

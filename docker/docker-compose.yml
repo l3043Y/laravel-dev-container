@@ -1,43 +1,57 @@
+
 services:
-  php:
-    container_name: laravel-dev
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: development
-      args:
-        USER_ID: $UID
-        GROUP_ID: $GID
-    ports:
-      - 8000:8080
-    volumes:
-      - ../:/var/www/html
+    php:
+        container_name: laravel-app
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+            target: development
+            args:
+                USER_ID: $UID
+                GROUP_ID: $GID
+        ports:
+            - 8000:8080
+        volumes:
+            - ../:/var/www/html
 
-  init-project:
-    container_name: init-project
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: init-project
-      args:
-        USER_ID: $UID
-        GROUP_ID: $GID
-    ports:
-      - 8000:8080
-    volumes:
-      - ../:/var/www/html
+    prod:
+        container_name: laravel-app
+        image: ${IMAGE_LATEST}
+        environment:
+            - PHP_FPM_POOL_NAME=laravel-app
+            - AUTORUN_ENABLED=true
+            - AUTORUN_LARAVEL_MIGRATION=true
+            - SSL_MODE=off # off, mixed, full
+        ports:
+            - 8000:8080
+        env_file:
+            - ../.env
 
-  postgres:
-    image: bitnami/postgresql:latest
-    container_name: dev_postgres
-    environment:
-        POSTGRESQL_USERNAME: dev_user
-        POSTGRESQL_PASSWORD: dev_password
-        POSTGRESQL_DATABASE: dev_db
-    ports:
-        - "5432:5432"
-    volumes:
-        - postgres_data:/bitnami/postgresql
+    postgres:
+        image: bitnami/postgresql:latest
+        container_name: dev_postgres
+        environment:
+            POSTGRESQL_USERNAME: dev_user
+            POSTGRESQL_PASSWORD: dev_password
+            POSTGRESQL_DATABASE: dev_db
+        ports:
+            - "5432:5432"
+#        volumes:
+#            - postgres_data:/bitnami/postgresql
 
-# volumes:
-#   postgres_data:
+    init-project:
+        container_name: laravel-app
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile
+            target: init-project
+            args:
+                USER_ID: $UID
+                GROUP_ID: $GID
+        ports:
+            - 8000:8080
+        volumes:
+            - ../:/var/www/html
+
+#volumes:
+#    postgres_data:
