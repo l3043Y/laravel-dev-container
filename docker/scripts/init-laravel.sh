@@ -2,9 +2,6 @@
 
 cd /var/www/html || exit
 
-echo "alias art=\"php artisan\"" >> ~/.profile
-echo "source ~/.profile" >> ~/.bashrc
-
 composer create-project laravel/laravel tmp
 mv tmp/* .
 mv tmp/.[!.]* .
@@ -26,7 +23,10 @@ composer require --ignore-platform-reqs --no-cache \
     spatie/laravel-data
 
 composer require --dev \
-    barryvdh/laravel-ide-helper \
-    laravel/telescope 
+    # barryvdh/laravel-ide-helper \
+    laravel/telescope
 
-alias
+php artisan vendor:publish --tag=log-viewer-assets
+php artisan telescope:install
+php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider"
+

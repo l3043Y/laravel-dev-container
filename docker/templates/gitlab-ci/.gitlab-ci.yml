@@ -128,6 +128,6 @@ deploy-staging:
       && mv temp "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml"
     - git add $KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml
     - git commit -m "Release message $COMMIT_MESSAGE"
-    - git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID"
     - git push origin main
-    - git push origin $IMAGE_RELEASE_TAG_IID
+    - git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID" || true
+    - git push origin $IMAGE_RELEASE_TAG_IID || true

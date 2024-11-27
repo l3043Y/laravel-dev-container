@@ -8,24 +8,24 @@ USER root
 RUN install-php-extensions xml xsl bcmath gd mbstring curl
 RUN install-php-extensions http intl
 
-
 # INSTALLING HANDY TOOLS
 RUN apt-get update
-RUN apt-get -y install netcat-openbsd vim telnet
+RUN apt-get -y install netcat-openbsd vim telnet || true
 
 # CLEANING UP...
 RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* || true
-#    && rm -rf /tmp/sqlsrv_build /tmp/imagick_build \
-#    && apt-get remove -y git \
 
 # COPY IN NGINX CONFIGURATION
 COPY --chown=www-data:www-data docker/scripts/15-disable-ipv6.sh /etc/entrypoint.d/
 RUN chmod +x /etc/entrypoint.d/15-disable-ipv6.sh
 
 USER www-data
+RUN echo "alias art=\"php artisan\"" > ~/.profile
+RUN echo "alias" >> ~/.profile
+RUN echo "source ~/.profile" > ~/.bashrc
 ############################################
-# Init Project
+# INIT PROJECT
 ############################################
 FROM base AS init-project
 USER root
