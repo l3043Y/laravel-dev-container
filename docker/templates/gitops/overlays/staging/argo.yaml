@@ -1,15 +1,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: st-smartnas4-static-assets
+  name: st-smart-website-tnps
 spec:
   project: devops
   destination:
-    namespace: 'devops-smartnas-ns'
+    namespace: 'devops-smart-website-ns'
     server: 'https://kubernetes.default.svc'
   source:
-    path: 'smartnas4/static-assets/overlays/staging'
-    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smartnas/smartnas-gitops.git'
+    path: 'tnps/overlays/staging'
+    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smart-web-site/deployment.git'
     targetRevision: HEAD
   syncPolicy:
     automated:
