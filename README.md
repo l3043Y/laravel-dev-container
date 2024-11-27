@@ -1,4 +1,5 @@
 ## Larvel Latest Template
+
 ### Initialize Laravel Project
 This will create a new project latest Laravel project natively via serversideup docker image
 ```bash
@@ -19,5 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
     });
 ```
 
-Register Laravel IDE Helper [barryvdh/laravel-ide-helper]('https://github.com/barryvdh/laravel-ide-helper')
-
+```angular2html
+php artisan vendor:publish --tag=log-viewer-assets
+php artisan telescope:install
+php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider"
+```
+```angular2html
+log viewer: https://st-k8s-ingress.smart.com.kh/log-viewer
+health: https://st-k8s-ingress.smart.com.kh/up
+pulse: https://st-k8s-ingress.smart.com.kh/pulse
+telescope: https://st-k8s-ingress.smart.com.kh/telescope
+api-doc: https://st-k8s-ingress.smart.com.kh/docs/api
+```

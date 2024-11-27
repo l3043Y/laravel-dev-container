@@ -2,7 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: larvl-deploy
+  labels:
+    tier: backend
 spec:
+  selector:
+    matchLabels:
+      tier: backend
   replicas: 1
   strategy:
     rollingUpdate:
@@ -10,6 +15,9 @@ spec:
       maxUnavailable: 25%
     type: RollingUpdate
   template:
+    metadata:
+      labels:
+        tier: backend
     spec:
       containers:
         - name: apps

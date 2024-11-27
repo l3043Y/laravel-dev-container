@@ -49,7 +49,7 @@ images:
   - name: apps-image-latest
     newName: registry.gitlab.com/smartaxiatakh/devops/smart-web-site/tnps/tnps
     newTag: staging-latest
-    digest: sha256:07516d4601382280c7ba8f0c30de75344970b3ac4dacc42539ae42d8f98be142
+    digest: sha256:142cec8fffa2d739fa443d2d3646f8132c5d0aa23a7a8f5c2efe03ae3666aa8f
   - name: smartnas3-busybox
     newName: busybox
     newTag: 1.36.1-glibc

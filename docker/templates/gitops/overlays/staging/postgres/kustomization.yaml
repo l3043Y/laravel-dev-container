@@ -5,8 +5,7 @@ namePrefix: pgsql-
 labels:
   - includeSelectors: true
     pairs:
-      app: postgres-db
-      environment: staging
+      tier: postgres-db
 
 resources:
   - statefulset.yaml
