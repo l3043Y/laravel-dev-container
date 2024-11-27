@@ -1,22 +1,37 @@
-############################################
-# Base Image
-############################################
+### BASE
 FROM serversideup/php:8.3-fpm-nginx-bookworm AS base
+ENV AUTORUN_ENABLED=false
+ENV SSL_MODE=off
+
+# INSTALLING BUILD TOOLS
 USER root
+RUN install-php-extensions xml xsl bcmath gd mbstring curl
+RUN install-php-extensions http intl
 
-RUN install-php-extensions intl xsl bcmath
+
+# INSTALLING HANDY TOOLS
+RUN apt-get update
+RUN apt-get -y install netcat-openbsd vim telnet
+
+# CLEANING UP...
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/* || true
+#    && rm -rf /tmp/sqlsrv_build /tmp/imagick_build \
+#    && apt-get remove -y git \
+
+# COPY IN NGINX CONFIGURATION
+COPY --chown=www-data:www-data docker/scripts/15-disable-ipv6.sh /etc/entrypoint.d/
+RUN chmod +x /etc/entrypoint.d/15-disable-ipv6.sh
+
 USER www-data
-
 ############################################
 # Init Project
 ############################################
 FROM base AS init-project
 USER root
 
-
 ARG USER_ID
 ARG GROUP_ID
-
 
 RUN docker-php-serversideup-set-id www-data $USER_ID:$GROUP_ID && \
     \
@@ -58,6 +73,16 @@ USER www-data
 # Since we're calling "base", production isn't
 # calling any of that permission stuff
 FROM base AS production
-
+ENV PHP_OPCACHE_ENABLE=1
 # Copy our app files as www-data (33:33)
+COPY --chown=www-data:www-data ./composer.json /var/www/html
+RUN composer install \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader \
+#    --no-dev \
+    --no-scripts \
+    --ignore-platform-req=ext-http
+
 COPY --chown=www-data:www-data . /var/www/html
+

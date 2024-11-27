@@ -3,31 +3,41 @@ stages:
   - deploy
 
 variables:
-  PROJECT_NAME: static-assets
+  PROJECT_NAME: tnps
   DOCKER_LOGIN_SCRIPT: docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-  DOCKER_FILE: assets/nginx-unit/Dockerfile
-  PIPELINE_DEBUG: "true"
+  DOCKER_FILE: docker/Dockerfile
+  PIPELINE_DEBUG: "false"
   MANUAL_TRIGGER: "false"
   UNATTENDED: "false"
   REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE/$PROJECT_NAME
   RELEASE_PREFIX: ""
-  KUZT_MANIFEST_PATH: smartnas4/$PROJECT_NAME/overlays
+  KUZT_MANIFEST_PATH: $PROJECT_NAME/overlays
   GIT_PROD_BRANCH: master
   GIT_STAGING_BRANCH: main
+  GITLAB_BUILD_PATH: /builds/$CI_PROJECT_PATH # /builds/$CI_PROJECT_PATH ex. /builds/smartaxiatakh/devops/smart-web-site/tnps
+  GITLAB_BUILD_CACHE_PATH: .docker_cache
   GITLAB_CI_USER: ci-operator
   GITLAB_CI_EMAIL: ci-operator
-  GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/smartaxiatakh/devops/smartnas/smartnas-gitops.git
+  GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/smartaxiatakh/devops/smart-web-site/deployment.git
   GIT_APPS_REPO_URL: https://$GITLAB_CI_USER:$GIT_APPS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - docker_cache/
+.auto_cancel:
+  interruptible: true
+  variables:
+    GIT_STRATEGY: fetch
 
 build-docker-image:
   image: docker:stable
   stage: build
   extends: .auto_cancel
+  cache:
+    - key:
+        files:
+          - $DOCKER_FILE
+          - composer.json
+#          - composer.lock
+      paths:
+        - $GITLAB_BUILD_CACHE_PATH
   rules:
     - if: $MANUAL_TRIGGER == "true"
     - if: $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH
@@ -45,18 +55,21 @@ build-docker-image:
         export PIPELINE_ENV="env"
       fi
     - |
-      export TAG_LATEST=unit-$PIPELINE_ENV-latest
-      export TAG_IID=unit-$PIPELINE_ENV-$CI_PIPELINE_IID
+      export TAG_LATEST=$PIPELINE_ENV-latest
+      export TAG_IID=$PIPELINE_ENV-$CI_PIPELINE_IID
       export IMAGE_LATEST=$REGISTRY_BASE_IMAGE:$TAG_LATEST
       export DOCKER_BUILDKIT=1
       export BUILDKIT_PROGRESS=plain
       export BUILDKIT_INLINE_CACHE=1
   script:
-    - mkdir -p docker_cache
+    - mkdir -p ${GITLAB_BUILD_CACHE_PATH}
     - |
-      if [ -f docker_cache/image_cache.tar ]; then
+      if [ -f ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar ]; then
         echo "Loading cached image..."
-        docker load -i docker_cache/image_cache.tar
+        docker load -i ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar
+        echo "Image loaded successfully!"
+        rm -rf ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
+        echo "Cache dir cleaned up successfully!"
       else
         echo "No cache found, building from scratch..."
       fi
@@ -65,17 +78,18 @@ build-docker-image:
       docker build \
       --cache-from $IMAGE_LATEST \
       --build-arg BUILDKIT_INLINE_CACHE=1 \
+      --target production \
       --tag $IMAGE_LATEST \
       --file $DOCKER_FILE \
-      "assets/"
-      docker save $IMAGE_LATEST > docker_cache/image_cache.tar
+      "."
+      docker save $IMAGE_LATEST > ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
       docker push $IMAGE_LATEST
       export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_LATEST | cut -d '@' -f 2)
     - |
       echo "Image build pushed successfully!" | tee -a pipeline_log.txt
       echo "PIPELINE_ENV=$PIPELINE_ENV" >> build_vars.env
-      echo "TAG_LATEST=$TAG_LATEST" >> build_vars.env   
-      echo "TAG_IID=$TAG_IID" >> build_vars.env   
+      echo "TAG_LATEST=$TAG_LATEST" >> build_vars.env
+      echo "TAG_IID=$TAG_IID" >> build_vars.env
       echo "DIGEST=$DIGEST" >> build_vars.env
   artifacts:
     paths:
