@@ -47,7 +47,7 @@ elif [[ "$1" == "--dev" ]]; then
     echo ""
     trap cleanup EXIT
     docker compose \
-        --env-file=./.env \
+        --env-file=./docker/scripts.env \
         -f docker/docker-compose.yml \
         up \
         -d \
@@ -82,7 +82,7 @@ elif [[ "$1" == "--build-prod" ]]; then
 elif [[ "$1" == "--run-prod" ]]; then
     trap cleanup EXIT
     docker compose \
-        --env-file=./.env \
+        --env-file=./docker/scripts.env \
         -f docker/docker-compose.yml \
         up -d prod postgres
 

@@ -38,6 +38,7 @@ RUN docker-php-serversideup-set-id www-data $USER_ID:$GROUP_ID && \
     docker-php-serversideup-set-file-permissions --owner $USER_ID:$GROUP_ID --service nginx
 
 COPY --chown=www-data:www-data docker/scripts/init-laravel.sh /etc/entrypoint.d/0-init-laravel.sh
+COPY --chown=www-data:www-data docker/scripts/.env /etc/entrypoint.d/
 RUN chmod +x /etc/entrypoint.d/0-init-laravel.sh
 
 
