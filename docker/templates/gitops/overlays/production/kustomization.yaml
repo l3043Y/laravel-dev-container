@@ -66,7 +66,7 @@ images:
     newName: registry.gitlab.com/smartaxiatakh/devops/smart-web-site/tnps/tnps
     newTag: staging-latest
     digest: sha256:81cba49a8af0105a23c80c5d28158ba5919f20461a4c41994f599b23457cce66
-  - name: smartnas3-busybox
+  - name: busybox
     newName: busybox
     newTag: 1.36.1-glibc
     digest: sha256:50aa4698fa6262977cff89181b2664b99d8a56dbca847bf62f2ef04854597cf8b7e4be4e9be38af6effd4f2271a93679de43bf8a634245d

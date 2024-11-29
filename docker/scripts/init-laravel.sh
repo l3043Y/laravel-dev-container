@@ -27,7 +27,6 @@ composer require --dev \
     barryvdh/laravel-ide-helper 
 
 php artisan vendor:publish --tag=log-viewer-assets
-php artisan telescope:install
+# php artisan telescope:install
 php artisan common:install
 php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider"
-

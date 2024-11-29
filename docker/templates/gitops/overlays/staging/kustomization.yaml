@@ -59,16 +59,6 @@ replacements:
           name: db-sfs
         fieldPaths:
           - spec.template.spec.containers.[name=^postgres$].envFrom.0.configMapRef.name
-#  - source:
-#      name: larvl-ingress
-#      kind: Ingress
-#      fieldPath: spec.rules.0.host
-#    targets:
-#      - select:
-#          name: larvl-cm
-#          kind: ConfigMap
-#        fieldPaths:
-#          - data.ASSET_URL
 
 images:
   - name: apps-image-latest

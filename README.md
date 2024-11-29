@@ -3,6 +3,7 @@
 ### Initialize Laravel Project
 This will create a new project latest Laravel project natively via serversideup docker image
 ```bash
+chmod +x ./init.sh
 ./init.sh --fresh-start
 ```
 ### Register Api Routes

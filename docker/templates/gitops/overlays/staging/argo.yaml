@@ -1,15 +1,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: st-smart-website-tnps
+  name: st-smart-website-tnps      # <
 spec:
   project: devops
   destination:
-    namespace: 'devops-smart-website-ns'
+    namespace: 'devops-smart-website-ns'      # <
     server: 'https://kubernetes.default.svc'
   source:
-    path: 'tnps/overlays/staging'
-    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smart-web-site/deployment.git'
+    path: 'tnps/overlays/staging'      # <
+    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smart-web-site/deployment.git'      # <
     targetRevision: HEAD
   syncPolicy:
     automated:
