@@ -22,6 +22,9 @@ variables:
 
 workflow:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "push" # && $CI_OPEN_MERGE_REQUESTS == "0"
+      variables:
+        AUTO_CANCEL: "true"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       variables:
         AUTO_CANCEL: "true"
@@ -95,10 +98,11 @@ build-docker-image:
       docker push $IMAGE_NAME:$TAG_IID
       docker push $IMAGE_NAME:latest
       docker save $IMAGE_NAME:latest > ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
-      export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_LATEST:latest | cut -d '@' -f 2)
+      export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_NAME:latest | cut -d '@' -f 2)
       echo "Image build pushed successfully!" | tee -a pipeline_log.txt
     - |
       echo "PIPELINE_ENV=$PIPELINE_ENV" >> build_vars.env
+      echo "REGISTRY_IMAGE_URL=$IMAGE_NAME" >> build_vars.env
       echo "TAG_IID=$TAG_IID" >> build_vars.env
       echo "DIGEST=$DIGEST" >> build_vars.env
   artifacts:
@@ -120,7 +124,7 @@ build-docker-image:
       git config --global user.name "$GITLAB_CI_USER"
       git config --global user.email "$GITLAB_CI_EMAIL"
     - |
-      export REGISTRY_IMAGE_URL=$REGISTRY_BASE_IMAGE-$PIPELINE_ENV
+      export REGISTRY_IMAGE_URL=$REGISTRY_IMAGE_URL
       export IMAGE_LATEST_DIGEST=$DIGEST
       export IMAGE_RELEASE_TAG=latest
       export IMAGE_RELEASE_TAG_IID=$TAG_IID
@@ -134,7 +138,7 @@ build-docker-image:
     - |
       git add $TARGET_PATH
       git commit -m "msg> $COMMIT_MESSAGE"
-      git pull origin $GITOPS_BRANCH
+      git pull origin $GITOPS_BRANCH || true
       git push origin $GITOPS_BRANCH
       git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID" || true
       git push origin $IMAGE_RELEASE_TAG_IID || true
