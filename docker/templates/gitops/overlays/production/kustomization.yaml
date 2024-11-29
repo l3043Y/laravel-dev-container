@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namePrefix: st-sw-tnps-     # <
+namePrefix: prod-sw-tnps-     # <
 labels:
   - includeSelectors: true
     pairs:
       app: sw-tnps     # <
-      environment: staging
+      environment: production
 
-namespace: devops-smart-website-ns      # <
+namespace: devops-smart-website-ns     # <
 
 resources:
 - deployment.yaml
@@ -18,12 +18,12 @@ resources:
 
 configMapGenerator:
   - name: larvl-cm
+    literals:
+      - ASSET_URL="tnps"     # <
+      - APP_MAIN_ENV=production
+      - APP_FORCE_HTTPS="true"
     envs:
       - .env
-    literals:
-      - ASSET_URL="tnps" # <
-      - APP_MAIN_ENV=staging
-      - APP_FORCE_HTTPS="true"
 
 replacements:
   - source:
@@ -59,22 +59,13 @@ replacements:
           name: db-sfs
         fieldPaths:
           - spec.template.spec.containers.[name=^postgres$].envFrom.0.configMapRef.name
-#  - source:
-#      name: larvl-ingress
-#      kind: Ingress
-#      fieldPath: spec.rules.0.host
-#    targets:
-#      - select:
-#          name: larvl-cm
-#          kind: ConfigMap
-#        fieldPaths:
-#          - data.ASSET_URL
+
 
 images:
   - name: apps-image-latest
     newName: registry.gitlab.com/smartaxiatakh/devops/smart-web-site/tnps/tnps
     newTag: staging-latest
-    digest: sha256:ea57f43bf2a48a571e874fec33d0967f07310a80854cd1387bfa48f073b76591
+    digest: sha256:81cba49a8af0105a23c80c5d28158ba5919f20461a4c41994f599b23457cce66
   - name: smartnas3-busybox
     newName: busybox
     newTag: 1.36.1-glibc

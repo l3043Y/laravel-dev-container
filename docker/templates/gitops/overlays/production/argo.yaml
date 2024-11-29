@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-smart-website-tnps
+spec:
+  project: devops-smart-website
+  destination:
+    namespace: 'devops-smart-website-ns'
+    server: 'https://10.1.83.136:6443'
+  source:
+    path: 'tnps/overlays/production'
+    repoURL: 'https://gitlab.com/smartaxiatakh/devops/smart-web-site/deployment.git'
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: larvl-svc
+  labels:
+    tier: backend
+spec:
+  selector:
+    tier: backend
+  type: ClusterIP
+  ports:
+    - name: tcp80
+      port: 80
+      protocol: TCP
+      targetPort: 8080

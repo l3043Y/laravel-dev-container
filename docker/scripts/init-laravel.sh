@@ -23,10 +23,11 @@ composer require --ignore-platform-reqs --no-cache \
     spatie/laravel-data
 
 composer require --dev \
-    # barryvdh/laravel-ide-helper \
-    laravel/telescope
+    # laravel/telescope \
+    barryvdh/laravel-ide-helper 
 
 php artisan vendor:publish --tag=log-viewer-assets
 php artisan telescope:install
+php artisan common:install
 php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider"
 

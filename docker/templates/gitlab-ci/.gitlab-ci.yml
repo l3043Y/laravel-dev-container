@@ -3,23 +3,34 @@ stages:
   - deploy
 
 variables:
-  PROJECT_NAME: tnps
+  PROJECT_NAME: tnps  # <project_name>
+  GIT_PROD_BRANCH: master  # ex. master
+  GIT_STAGING_BRANCH: staging  # ex. staging
+
   DOCKER_LOGIN_SCRIPT: docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   DOCKER_FILE: docker/Dockerfile
-  PIPELINE_DEBUG: "false"
-  MANUAL_TRIGGER: "false"
-  UNATTENDED: "false"
-  REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE/$PROJECT_NAME
-  RELEASE_PREFIX: ""
+  REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE
   KUZT_MANIFEST_PATH: $PROJECT_NAME/overlays
-  GIT_PROD_BRANCH: master
-  GIT_STAGING_BRANCH: main
-  GITLAB_BUILD_PATH: /builds/$CI_PROJECT_PATH # /builds/$CI_PROJECT_PATH ex. /builds/smartaxiatakh/devops/smart-web-site/tnps
+  MANUAL_TRIGGER: "false"
   GITLAB_BUILD_CACHE_PATH: .docker_cache
   GITLAB_CI_USER: ci-operator
   GITLAB_CI_EMAIL: ci-operator
+  GITOPS_BRANCH: main
   GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/smartaxiatakh/devops/smart-web-site/deployment.git
   GIT_APPS_REPO_URL: https://$GITLAB_CI_USER:$GIT_APPS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+  UNATTENDED: "false"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        AUTO_CANCEL: "true"
+    - if: $CI_PIPELINE_SOURCE == "web"  # This allows manual trigger
+      when: always  # Manual trigger for pipeline
+      variables:
+        AUTO_CANCEL: "true"
+        MANUAL_TRIGGER: "true"
+        UNATTENDED: "true"
 
 .auto_cancel:
   interruptible: true
@@ -34,8 +45,7 @@ build-docker-image:
     - key:
         files:
           - $DOCKER_FILE
-          - composer.json
-#          - composer.lock
+          - composer.lock
       paths:
         - $GITLAB_BUILD_CACHE_PATH
   rules:
@@ -55,9 +65,8 @@ build-docker-image:
         export PIPELINE_ENV="env"
       fi
     - |
-      export TAG_LATEST=$PIPELINE_ENV-latest
-      export TAG_IID=$PIPELINE_ENV-$CI_PIPELINE_IID
-      export IMAGE_LATEST=$REGISTRY_BASE_IMAGE:$TAG_LATEST
+      export TAG_IID=UID-$CI_PIPELINE_IID
+      export IMAGE_NAME=$REGISTRY_BASE_IMAGE/$PIPELINE_ENV
       export DOCKER_BUILDKIT=1
       export BUILDKIT_PROGRESS=plain
       export BUILDKIT_INLINE_CACHE=1
@@ -76,19 +85,20 @@ build-docker-image:
     - |
       echo ">>> Run building image..." | tee -a pipeline_log.txt
       docker build \
-      --cache-from $IMAGE_LATEST \
+      --cache-from $IMAGE_NAME:latest \
       --build-arg BUILDKIT_INLINE_CACHE=1 \
       --target production \
-      --tag $IMAGE_LATEST \
+      --tag $IMAGE_NAME:latest \
+      --tag $IMAGE_NAME:$TAG_IID \
       --file $DOCKER_FILE \
       "."
-      docker save $IMAGE_LATEST > ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
-      docker push $IMAGE_LATEST
-      export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_LATEST | cut -d '@' -f 2)
-    - |
+      docker push $IMAGE_NAME:$TAG_IID
+      docker push $IMAGE_NAME:latest
+      docker save $IMAGE_NAME:latest > ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
+      export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_LATEST:latest | cut -d '@' -f 2)
       echo "Image build pushed successfully!" | tee -a pipeline_log.txt
+    - |
       echo "PIPELINE_ENV=$PIPELINE_ENV" >> build_vars.env
-      echo "TAG_LATEST=$TAG_LATEST" >> build_vars.env
       echo "TAG_IID=$TAG_IID" >> build_vars.env
       echo "DIGEST=$DIGEST" >> build_vars.env
   artifacts:
@@ -96,15 +106,9 @@ build-docker-image:
       - build_vars.env
       - pipeline_log.txt
 
-deploy-staging:
+.deploy:
   image: node:latest
   stage: deploy
-  when: always
-  environment:
-    name: staging
-  rules:
-    - if: $MANUAL_TRIGGER == "true"
-    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -116,18 +120,43 @@ deploy-staging:
       git config --global user.name "$GITLAB_CI_USER"
       git config --global user.email "$GITLAB_CI_EMAIL"
     - |
-      export REGISTRY_IMAGE_URL=$REGISTRY_BASE_IMAGE
+      export REGISTRY_IMAGE_URL=$REGISTRY_BASE_IMAGE-$PIPELINE_ENV
       export IMAGE_LATEST_DIGEST=$DIGEST
-      export IMAGE_RELEASE_TAG=$TAG_LATEST
+      export IMAGE_RELEASE_TAG=latest
       export IMAGE_RELEASE_TAG_IID=$TAG_IID
       export COMMIT_MESSAGE=$(git log --format=%B -n 1 $CI_COMMIT_SHORT_SHA)
   script:
     - git clone $GITOPS_REPO_URL gitops_repo && cd gitops_repo
     - |
-      awk -f "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/update_digest.awk" "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml" > temp \
-      && mv temp "$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml"
-    - git add $KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml
-    - git commit -m "Release message $COMMIT_MESSAGE"
-    - git push origin main
-    - git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID" || true
-    - git push origin $IMAGE_RELEASE_TAG_IID || true
+      export TARGET_PATH="$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml"
+      awk -f $KUZT_MANIFEST_PATH/$PIPELINE_ENV/update_digest.awk $TARGET_PATH > temp
+      mv temp $TARGET_PATH
+    - |
+      git add $TARGET_PATH
+      git commit -m "msg> $COMMIT_MESSAGE"
+      git pull origin $GITOPS_BRANCH
+      git push origin $GITOPS_BRANCH
+      git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID" || true
+      git push origin $IMAGE_RELEASE_TAG_IID || true
+
+deploy-staging:
+  extends: .deploy
+  when: always
+  environment:
+    name: staging
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
+    - if: '$UNATTENDED == "true" && $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH'
+  needs:
+    - job: build-docker-image
+
+deploy-production:
+  extends: .deploy
+  when: manual
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH
+    - if: '$UNATTENDED == "true" && $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH'
+  needs:
+    - job: build-docker-image

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: larvl-deploy
+  labels:
+    tier: backend
+spec:
+  selector:
+    matchLabels:
+      tier: backend
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        tier: backend
+    spec:
+      containers:
+        - name: apps
+          image: apps-image-latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: "{{configMapName}}"
+          env:
+            - name: AUTORUN_ENABLED
+              value: "true"
+            - name: AUTORUN_LARAVEL_MIGRATION
+              value: "true"
+          resources:
+            requests:
+              cpu: '250m'
+              memory: '250Mi'
+            limits:
+              cpu: '1'
+              memory: '1Gi'
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+      restartPolicy: Always
