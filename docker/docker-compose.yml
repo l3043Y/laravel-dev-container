@@ -9,6 +9,11 @@ services:
             args:
                 USER_ID: $UID
                 GROUP_ID: $GID
+        environment:
+            - PHP_FPM_POOL_NAME=laravel-app
+            - AUTORUN_ENABLED=true
+            - AUTORUN_LARAVEL_MIGRATION=true
+            - SSL_MODE=off # off, mixed, full
         ports:
             - 8000:8080
         volumes:
@@ -31,11 +36,14 @@ services:
         image: bitnami/postgresql:latest
         container_name: dev_postgres
         environment:
-            POSTGRESQL_USERNAME: dev_user
-            POSTGRESQL_PASSWORD: dev_password
-            POSTGRESQL_DATABASE: dev_db
+            POSTGRESQL_USERNAME: ${DB_USERNAME}
+            POSTGRESQL_PASSWORD: ${DB_PASSWORD}
+            POSTGRESQL_DATABASE: ${DB_DATABASE}
+
         ports:
             - "5432:5432"
+        env_file:
+            - ../.env
 #        volumes:
 #            - postgres_data:/bitnami/postgresql
 

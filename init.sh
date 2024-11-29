@@ -46,7 +46,12 @@ elif [[ "$1" == "--dev" ]]; then
     echo -e "${GREEN}alias art=\"php artisan\"${NC}"
     echo ""
     trap cleanup EXIT
-    docker compose -f docker/docker-compose.yml up -d php postgres
+    docker compose \
+        --env-file=./.env \
+        -f docker/docker-compose.yml \
+        up \
+        -d \
+        postgres php
     docker exec -it laravel-app /bin/bash
 
 elif [[ "$1" == "--build-prod" ]]; then
@@ -76,7 +81,10 @@ elif [[ "$1" == "--build-prod" ]]; then
 
 elif [[ "$1" == "--run-prod" ]]; then
     trap cleanup EXIT
-    docker compose -f docker/docker-compose.yml up -d prod postgres
+    docker compose \
+        --env-file=./.env \
+        -f docker/docker-compose.yml \
+        up -d prod postgres
 
 elif [[ "$1" == "--down" ]]; then
     cleanup
