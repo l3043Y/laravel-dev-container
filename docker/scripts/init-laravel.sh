@@ -22,9 +22,9 @@ composer require --ignore-platform-reqs --no-cache \
     spatie/laravel-health \
     spatie/laravel-data
 
-composer require --dev \
-    # laravel/telescope \
-    barryvdh/laravel-ide-helper 
+# composer require --dev \
+#     laravel/telescope \
+#     barryvdh/laravel-ide-helper 
 
 php artisan vendor:publish --tag=log-viewer-assets
 # php artisan telescope:install
