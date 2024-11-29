@@ -13,6 +13,8 @@ cp -r docker/templates/laravel/Middlewares app/Http
 cp -r docker/templates/laravel/Requests app/Http
 cp -r docker/templates/laravel/Services app
 
+sed -i '/web:/a\        api: __DIR__."/../routes/api.php",' bootstrap/app.php
+sed -i '/->withMiddleware(function (Middleware $middleware) {/,/})/s|//|$middleware->api(append:[\\App\\Http\\Middlewares\\ForceJsonResponse::class]);|' bootstrap/app.php
 
 composer require --ignore-platform-reqs --no-cache \
     l3043y/laravel-common \
