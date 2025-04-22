@@ -5,6 +5,8 @@ export GID=$(id -g)
 
 export IMAGE_LATEST=serversideup/laravel:8.3-fpm-nginx-bookworm
 export DOCKER_FILE=docker/Dockerfile
+export COMPOSE_FILE=docker/docker-compose.yml
+export ENV_FILE=docker/scripts/example.env
 
 export RED='\033[0;31m'
 export GREEN='\033[0;32m'
@@ -15,7 +17,7 @@ function cleanup {
     echo ""
     echo -e "${RED}Stopping and cleaning up Docker containers...${NC}"
     echo ""
-    docker compose -f docker/docker-compose.yml down
+    docker compose -f $COMPOSE_FILE down
 }
 
 if [[ "$1" == "--fresh-start" ]]; then
@@ -23,8 +25,8 @@ if [[ "$1" == "--fresh-start" ]]; then
     echo -e "${GREEN}UID: ${UID}${NC}"
     echo -e "${GREEN}GID: ${GID}${NC}"
     docker compose \
-        --env-file=docker/scripts/example.env \
-        -f docker/docker-compose.yml \
+        --env-file=$ENV_FILE \
+        -f $COMPOSE_FILE \
         up \
         init-project postgres \
         --build
@@ -51,8 +53,8 @@ elif [[ "$1" == "--dev" ]]; then
     echo ""
     trap cleanup EXIT
     docker compose \
-        --env-file=docker/scripts/example.env \
-        -f docker/docker-compose.yml \
+        --env-file=$ENV_FILE \
+        -f $COMPOSE_FILE \
         up \
         -d \
         postgres php
@@ -86,8 +88,8 @@ elif [[ "$1" == "--build-prod" ]]; then
 elif [[ "$1" == "--run-prod" ]]; then
     trap cleanup EXIT
     docker compose \
-        --env-file=docker/scripts/example.env \
-        -f docker/docker-compose.yml \
+        --env-file=$ENV_FILE \
+        -f $COMPOSE_FILE \
         up -d prod postgres
 
 elif [[ "$1" == "--down" ]]; then

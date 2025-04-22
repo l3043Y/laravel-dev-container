@@ -28,7 +28,7 @@ sed -i '/web:/a\        api: __DIR__."/../routes/api.php",' bootstrap/app.php
 sed -i '/->withMiddleware(function (Middleware $middleware) {/,/})/s|//|$middleware->api(append:[\\App\\Http\\Middlewares\\ForceJsonResponse::class]);|' bootstrap/app.php
 
 # Uncomment and update the lines in .env
-source .env
+# source .env
 sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONNECTION}/" .env
 sed -i 's/^# DB_HOST=.*/DB_HOST='"${DB_HOST}"'/' .env
 sed -i 's/^# DB_PORT=.*/DB_PORT='"${DB_PORT}"'/' .env
@@ -36,7 +36,7 @@ sed -i 's/^# DB_DATABASE=.*/DB_DATABASE='"${DB_DATABASE}"'/' .env
 sed -i 's/^# DB_USERNAME=.*/DB_USERNAME='"${DB_USERNAME}"'/' .env
 sed -i 's/^# DB_PASSWORD=.*/DB_PASSWORD='"${DB_PASSWORD}"'/' .env
 
-composer require --ignore-platform-reqs --no-cache \
+composer require --no-cache \
     l3043y/laravel-common \
     laravel/pulse \
     opcodesio/log-viewer \
@@ -46,7 +46,7 @@ composer require --ignore-platform-reqs --no-cache \
 
 # composer require --dev \
 #     laravel/telescope \
-#     barryvdh/laravel-ide-helper 
+#     barryvdh/laravel-ide-helper
 
 php artisan vendor:publish --tag=log-viewer-assets
 # php artisan telescope:install

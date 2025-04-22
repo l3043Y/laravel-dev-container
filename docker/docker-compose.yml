@@ -29,8 +29,8 @@ services:
             - SSL_MODE=off # off, mixed, full
         ports:
             - 8000:8080
-        env_file:
-            - ../.env
+#        env_file:
+#            - ../.env
 
     postgres:
         image: bitnami/postgresql:latest
@@ -39,11 +39,10 @@ services:
             POSTGRESQL_USERNAME: ${DB_USERNAME}
             POSTGRESQL_PASSWORD: ${DB_PASSWORD}
             POSTGRESQL_DATABASE: ${DB_DATABASE}
-
         ports:
             - "5432:5432"
-        env_file:
-            - ../.env
+#        env_file:
+#            - ../.env
 #        volumes:
 #            - postgres_data:/bitnami/postgresql
 
