@@ -37,18 +37,18 @@ sed -i 's/^# DB_USERNAME=.*/DB_USERNAME='"${DB_USERNAME}"'/' .env
 sed -i 's/^# DB_PASSWORD=.*/DB_PASSWORD='"${DB_PASSWORD}"'/' .env
 
 composer require --no-cache \
-#    l3043y/laravel-common \
     laravel/pulse \
     opcodesio/log-viewer \
     dedoc/scramble \
     spatie/laravel-health \
-    spatie/laravel-data
+    spatie/laravel-data || true
 
+#    l3043y/laravel-common \
 # composer require --dev \
 #     laravel/telescope \
 #     barryvdh/laravel-ide-helper
 
-php artisan vendor:publish --tag=log-viewer-assets
+php artisan vendor:publish --tag=log-viewer-assets || true
 # php artisan telescope:install
-php artisan common:install
-php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider"
+#php artisan common:install
+php artisan vendor:publish --provider="Laravel\Pulse\PulseServiceProvider" || true
