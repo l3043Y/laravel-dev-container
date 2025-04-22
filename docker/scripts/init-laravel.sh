@@ -28,7 +28,14 @@ cat docker/scripts/example.env >> .env
 #sed -i '/->withMiddleware(function (Middleware $middleware) {/,/})/s|//|$middleware->api(append:[\\App\\Http\\Middlewares\\ForceJsonResponse::class]);|' bootstrap/app.php
 
 # Uncomment and update the lines in .env
-# source .env
+env_file="docker/scripts/example.env"
+if [ -f "$env_file" ]; then
+    cat $env_file
+    source "$env_file" || . "$env_file"
+else
+    echo "Warning: Environment file '$env_file' not found."
+    # Optionally exit or set default values here
+fi
 sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONNECTION}/" .env
 sed -i 's/^# DB_HOST=.*/DB_HOST='"${DB_HOST}"'/' .env
 sed -i 's/^# DB_PORT=.*/DB_PORT='"${DB_PORT}"'/' .env
