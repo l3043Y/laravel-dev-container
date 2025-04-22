@@ -22,9 +22,8 @@ if [[ "$1" == "--fresh-start" ]]; then
     echo "Starting with a fresh setup..."
     echo -e "${GREEN}UID: ${UID}${NC}"
     echo -e "${GREEN}GID: ${GID}${NC}"
-    cp docker/scripts/example.env .env
     docker compose \
-        --env-file=.env \
+        --env-file=docker/scripts/example.env \
         -f docker/docker-compose.yml \
         up \
         init-project postgres \
@@ -52,7 +51,7 @@ elif [[ "$1" == "--dev" ]]; then
     echo ""
     trap cleanup EXIT
     docker compose \
-        --env-file=.env \
+        --env-file=docker/scripts/example.env \
         -f docker/docker-compose.yml \
         up \
         -d \
@@ -87,7 +86,7 @@ elif [[ "$1" == "--build-prod" ]]; then
 elif [[ "$1" == "--run-prod" ]]; then
     trap cleanup EXIT
     docker compose \
-        --env-file=.env \
+        --env-file=docker/scripts/example.env \
         -f docker/docker-compose.yml \
         up -d prod postgres
 
