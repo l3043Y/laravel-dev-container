@@ -55,6 +55,11 @@ services:
             args:
                 USER_ID: $UID
                 GROUP_ID: $GID
+        environment:
+            - PHP_FPM_POOL_NAME=laravel-app
+            - AUTORUN_ENABLED=true
+            - AUTORUN_LARAVEL_MIGRATION=true
+            - SSL_MODE=off # off, mixed, full
         ports:
             - 8000:8080
         volumes:
