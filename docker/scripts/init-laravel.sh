@@ -2,10 +2,18 @@
 
 cd /var/www/html || exit
 
-composer create-project laravel/laravel tmp
-mv tmp/* .
-mv tmp/.[!.]* .
-rm -rf tmp
+target_dir="init-sequence-tmp"
+
+cd /var/www/html || exit
+
+if [ -d "$target_dir" ]; then
+  rm -rf "$target_dir"
+fi
+
+composer create-project laravel/laravel "$target_dir"
+mv "$target_dir"/* .
+mv "$target_dir"/.[!.]* .
+rm -rf "$target_dir"
 
 cp -r docker/templates/laravel/routes/* routes
 cp -r docker/templates/laravel/Controllers/* app/Http/Controllers

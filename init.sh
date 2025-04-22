@@ -23,7 +23,12 @@ if [[ "$1" == "--fresh-start" ]]; then
     echo -e "${GREEN}UID: ${UID}${NC}"
     echo -e "${GREEN}GID: ${GID}${NC}"
     cp docker/scripts/example.env .env
-    docker compose -f docker/docker-compose.yml up init-project postgres --build
+    docker compose \
+        --env-file=.env \
+        -f docker/docker-compose.yml \
+        up \
+        init-project postgres \
+        --build
     echo -e "${GREEN}Initialization complete!${NC}"
     echo "You can start an interactive session with the following command:"
     echo "./init.sh --it"
