@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# shellcheck disable=SC2155
 export UID=$(id -u)
 export GID=$(id -g)
 
@@ -7,8 +8,13 @@ export IMAGE_LATEST=serversideup/laravel:8.3-fpm-nginx-bookworm
 export DOCKER_FILE=docker/Dockerfile
 export COMPOSE_FILE=docker/docker-compose.yml
 export ENV_FILE=docker/scripts/example.env
+# shellcheck disable=SC2155
+export PROJECT_NAME=$(basename "$PWD")
+sed -i "s/container_name: .*/container_name: ${PROJECT_NAME}-app/g" docker/docker-compose.yml || true
+sed -i "s/^postgres_data:/${PROJECT_NAME}_postgres_data:/g" docker/docker-compose.yml
 
-export RED='\033[0;31m'
+
+export RED="\033[0;31m"
 export GREEN='\033[0;32m'
 export NC='\033[0m' # No Color
 
@@ -37,7 +43,7 @@ if [[ "$1" == "--fresh-start" ]]; then
 elif [[ "$1" == "--it" ]]; then
     echo "Running in interactive mode..."
     trap cleanup EXIT
-    docker exec -it laravel-app /bin/bash
+    docker exec -it "$PROJECT_NAME" /bin/bash
 
 
 elif [[ "$1" == "--dev" ]]; then
@@ -58,7 +64,7 @@ elif [[ "$1" == "--dev" ]]; then
         up \
         -d \
         postgres php
-    docker exec -it laravel-app /bin/bash
+    docker exec -it "$PROJECT_NAME" /bin/bash
 
 elif [[ "$1" == "--build-prod" ]]; then
     echo ">>> Run building image..."
