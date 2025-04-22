@@ -18,14 +18,14 @@ rm -rf "$target_dir"
 
 cat docker/scripts/example.env >> .env
 
-cp -r docker/templates/laravel/routes/* routes
-cp -r docker/templates/laravel/Controllers/* app/Http/Controllers
-cp -r docker/templates/laravel/Middlewares app/Http
-cp -r docker/templates/laravel/Requests app/Http
-cp -r docker/templates/laravel/Services app
-
-sed -i '/web:/a\        api: __DIR__."/../routes/api.php",' bootstrap/app.php
-sed -i '/->withMiddleware(function (Middleware $middleware) {/,/})/s|//|$middleware->api(append:[\\App\\Http\\Middlewares\\ForceJsonResponse::class]);|' bootstrap/app.php
+#cp -r docker/templates/laravel/routes/* routes
+#cp -r docker/templates/laravel/Controllers/* app/Http/Controllers
+#cp -r docker/templates/laravel/Middlewares app/Http
+#cp -r docker/templates/laravel/Requests app/Http
+#cp -r docker/templates/laravel/Services app
+#
+#sed -i '/web:/a\        api: __DIR__."/../routes/api.php",' bootstrap/app.php
+#sed -i '/->withMiddleware(function (Middleware $middleware) {/,/})/s|//|$middleware->api(append:[\\App\\Http\\Middlewares\\ForceJsonResponse::class]);|' bootstrap/app.php
 
 # Uncomment and update the lines in .env
 # source .env
@@ -37,7 +37,7 @@ sed -i 's/^# DB_USERNAME=.*/DB_USERNAME='"${DB_USERNAME}"'/' .env
 sed -i 's/^# DB_PASSWORD=.*/DB_PASSWORD='"${DB_PASSWORD}"'/' .env
 
 composer require --no-cache \
-    l3043y/laravel-common \
+#    l3043y/laravel-common \
     laravel/pulse \
     opcodesio/log-viewer \
     dedoc/scramble \
