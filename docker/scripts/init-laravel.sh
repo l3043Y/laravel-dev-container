@@ -11,6 +11,7 @@ if [ -d "$target_dir" ]; then
 fi
 
 composer create-project laravel/laravel "$target_dir"
+mv "$target_dir"/README.md "$target_dir"/LARAVEL_README.md
 mv "$target_dir"/* .
 mv "$target_dir"/.[!.]* .
 rm -rf "$target_dir"
