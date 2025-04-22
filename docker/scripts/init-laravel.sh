@@ -16,6 +16,8 @@ mv "$target_dir"/* .
 mv "$target_dir"/.[!.]* .
 rm -rf "$target_dir"
 
+cat docker/scripts/example.env >> .env
+
 cp -r docker/templates/laravel/routes/* routes
 cp -r docker/templates/laravel/Controllers/* app/Http/Controllers
 cp -r docker/templates/laravel/Middlewares app/Http

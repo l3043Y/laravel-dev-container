@@ -39,7 +39,7 @@ RUN docker-php-serversideup-set-id www-data $USER_ID:$GROUP_ID && \
 
 COPY --chown=www-data:www-data docker/scripts/init-laravel.sh /etc/entrypoint.d/0-init-laravel.sh
 COPY --chown=www-data:www-data docker/scripts/example.env /etc/entrypoint.d/.env
-RUN chmod +x /etc/entrypoint.d/0-init-laravel.sh
+RUN chmod +x /etc/entrypoint.d/0-init-laravel.sh || true
 
 
 USER www-data
