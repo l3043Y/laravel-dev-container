@@ -42,7 +42,7 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - postgres_data:/bitnami/postgresql
+            - postgres-data:/bitnami/postgresql
 #        env_file:
 #            - ../.env
 
@@ -66,4 +66,4 @@ services:
             - ../:/var/www/html
 
 volumes:
-    postgres_data:
+    postgres-data:
