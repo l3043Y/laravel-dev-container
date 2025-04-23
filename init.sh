@@ -19,6 +19,7 @@ echo "Initializing project: $PROJECT_NAME"
 sed -E "s/laravel-app/${PROJECT_NAME}-app/g" docker/docker-compose.yml > tmp
 sed -E "s/postgres-data:/${PROJECT_NAME}-postgres-data:/g" tmp > tmp2
 mv tmp2 docker/docker-compose.yml
+rm -rf tmp
 
 export VOLUME_NAME=${PROJECT_NAME}-postgres-data
 
@@ -72,7 +73,7 @@ if [[ "$1" == "--fresh-start" ]]; then
 elif [[ "$1" == "--it" ]]; then
     echo "Running in interactive mode..."
     trap cleanup EXIT
-    docker exec -it "$PROJECT_NAME" /bin/bash
+    docker exec -it "$APP_NAME" /bin/bash
 
 
 elif [[ "$1" == "--dev" ]]; then
@@ -93,7 +94,7 @@ elif [[ "$1" == "--dev" ]]; then
         up \
         -d \
         postgres php
-    docker exec -it "$PROJECT_NAME" /bin/bash
+    docker exec -it "$APP_NAME" /bin/bash
 
 elif [[ "$1" == "--build-prod" ]]; then
     echo ">>> Run building image..."
