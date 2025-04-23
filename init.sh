@@ -52,6 +52,9 @@ if [[ "$1" == "--fresh-start" ]]; then
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             docker volume rm "${VOLUME_NAME}"
             echo "Volume '${VOLUME_NAME}' removed."
+        else
+            echo -e "${RED}We can't proceed fresh setup with existing volume...${NC}"
+            exit 1
         fi
     fi
 
