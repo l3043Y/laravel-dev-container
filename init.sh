@@ -21,14 +21,7 @@ sed -E "s/postgres-data:/${PROJECT_NAME}-postgres-data:/g" tmp > tmp2
 mv tmp2 docker/docker-compose.yml
 
 export VOLUME_NAME=${PROJECT_NAME}-postgres-data
-if docker volume ls -q | grep -q "${VOLUME_NAME}"; then
-    echo "Docker volume ${VOLUME_NAME} exists."
-    read -p "Docker volume '${VOLUME_NAME}' exists. Remove it? [y/N]: " confirm
-    if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        docker volume rm "${VOLUME_NAME}"
-        echo "Volume '${VOLUME_NAME}' removed."
-    fi
-fi
+
 
 export RED="\033[0;31m"
 export GREEN='\033[0;32m'
@@ -52,6 +45,17 @@ if [[ "$1" == "--fresh-start" ]]; then
     echo "Starting with a fresh setup..."
     echo -e "${GREEN}UID: ${UID}${NC}"
     echo -e "${GREEN}GID: ${GID}${NC}"
+
+    if docker volume ls -q | grep -q "${VOLUME_NAME}"; then
+        echo "Docker volume ${VOLUME_NAME} exists."
+        read -p "Docker volume '${VOLUME_NAME}' exists. Remove it? [y/N]: " confirm
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            docker volume rm "${VOLUME_NAME}"
+            echo "Volume '${VOLUME_NAME}' removed."
+        fi
+    fi
+
+
     docker compose \
         --env-file=$ENV_FILE \
         -f $COMPOSE_FILE \
