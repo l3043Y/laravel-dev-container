@@ -16,9 +16,9 @@ export APP_NAME=${PROJECT_NAME}-app
 export VOLUME_NAME=${PROJECT_NAME}-postgres-data
 
 echo "Initializing project: $PROJECT_NAME"
-sed -E "s/laravel-app/${APP_NAME}/g" docker/docker-compose.yml > tmp
-sed -E "s/postgres-data:/${VOLUME_NAME}:/g" tmp > tmp
-mv tmp docker/docker-compose.yml
+sed -E "s/laravel-app/${PROJECT_NAME}-app/g" docker/docker-compose.yml > tmp
+sed -E "s/postgres-data:/${PROJECT_NAME}-postgres-data:/g" tmp > tmp2
+mv tmp2 docker/docker-compose.yml
 
 export VOLUME_NAME=${PROJECT_NAME}-postgres-data
 if docker volume ls -q | grep -q "${VOLUME_NAME}"; then
