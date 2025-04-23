@@ -13,16 +13,6 @@ export ENV_FILE=docker/scripts/example.env
 export PROJECT_NAME=$(basename "$PWD")
 export PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-+|-+$//g')
 export APP_NAME=${PROJECT_NAME}-app
-export VOLUME_NAME=${PROJECT_NAME}-postgres-data
-
-echo "Initializing project: $PROJECT_NAME"
-sed -E "s/laravel-app/${PROJECT_NAME}-app/g" docker/docker-compose.yml > tmp
-sed -E "s/postgres-data:/${PROJECT_NAME}-postgres-data:/g" tmp > tmp2
-mv tmp2 docker/docker-compose.yml
-rm -rf tmp
-
-export VOLUME_NAME=${PROJECT_NAME}-postgres-data
-
 
 export RED="\033[0;31m"
 export GREEN='\033[0;32m'
@@ -46,6 +36,14 @@ if [[ "$1" == "--fresh-start" ]]; then
     echo "Starting with a fresh setup..."
     echo -e "${GREEN}UID: ${UID}${NC}"
     echo -e "${GREEN}GID: ${GID}${NC}"
+
+    export VOLUME_NAME=${PROJECT_NAME}-postgres-data
+
+    echo "Initializing project: $PROJECT_NAME"
+    sed -E "s/laravel-app/${APP_NAME}/g" docker/docker-compose.yml > tmp
+    sed -E "s/postgres-data:/${VOLUME_NAME}:/g" tmp > tmp2
+    rm -rf tmp
+    mv tmp2 docker/docker-compose.yml
 
     if docker volume ls -q | grep -q "${VOLUME_NAME}"; then
         echo "Docker volume ${VOLUME_NAME} exists."
