@@ -90,6 +90,7 @@ build-docker-image:
       docker build \
       --cache-from $IMAGE_NAME:latest \
       --build-arg BUILDKIT_INLINE_CACHE=1 \
+      --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN \
       --target production \
       --tag $IMAGE_NAME:latest \
       --tag $IMAGE_NAME:$TAG_IID \

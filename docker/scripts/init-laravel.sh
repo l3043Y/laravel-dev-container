@@ -16,6 +16,9 @@ mv "$target_dir"/* .
 mv "$target_dir"/.[!.]* .
 rm -rf "$target_dir"
 
+
+cp docker/templates/gitlab-ci/.gitlab-ci.yml .
+
 #cat docker/scripts/example.env >> .env
 
 #cp -r docker/templates/laravel/routes/* routes

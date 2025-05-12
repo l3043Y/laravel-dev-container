@@ -1,5 +1,6 @@
 ### BASE
 FROM serversideup/php:8.3-fpm-nginx-bookworm AS base
+ARG CI_JOB_TOKEN
 ENV AUTORUN_ENABLED=false
 ENV SSL_MODE=off
 
@@ -24,6 +25,8 @@ USER www-data
 RUN echo "alias art=\"php artisan\"" > ~/.profile
 RUN echo "alias" >> ~/.profile
 RUN echo "source ~/.profile" > ~/.bashrc
+
+
 ############################################
 # INIT PROJECT
 ############################################
@@ -74,16 +77,19 @@ USER www-data
 # Since we're calling "base", production isn't
 # calling any of that permission stuff
 FROM base AS production
+USER www-data
 ENV PHP_OPCACHE_ENABLE=1
 # Copy our app files as www-data (33:33)
 COPY --chown=www-data:www-data ./composer.json /var/www/html
-RUN composer install \
-    --no-interaction \
-    --prefer-dist \
-    --optimize-autoloader \
-#    --no-dev \
-    --no-scripts \
-    --ignore-platform-req=ext-http
+RUN composer config gitlab-token.gitlab.com gitlab-ci-token "${CI_JOB_TOKEN}" && \
+    composer install \
+        --apcu-autoloader \
+        --ansi \
+        --no-dev \
+        --no-interaction \
+        --no-scripts \
+        --prefer-dist \
+        --optimize-autoloader
 
 COPY --chown=www-data:www-data . /var/www/html
 
