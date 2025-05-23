@@ -4,7 +4,7 @@ BEGIN {
     # Get the new digest value from the environment variable
     REGISTRY_IMAGE_URL = ENVIRON["REGISTRY_IMAGE_URL"]
     NEW_DIGEST = ENVIRON["IMAGE_LATEST_DIGEST"]
-    NEW_TAG = ENVIRON["IMAGE_RELEASE_TAG"]
+    NEW_TAG = ENVIRON["IMAGE_RELEASE_TAG_IID"]
 }
 
 /name: apps-image-latest/ {

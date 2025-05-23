@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namePrefix: st-sw-tnps-     # <
+namePrefix: st-sn4-gms-    # <
 labels:
   - includeSelectors: true
     pairs:
-      app: sw-tnps     # <
+#      app: gamification    # <
       environment: staging
 
-namespace: devops-smart-website-ns      # <
+namespace: devops-smartnas-ns      # <
 
 resources:
 - deployment.yaml
@@ -17,22 +17,22 @@ resources:
 - postgres
 
 configMapGenerator:
-  - name: larvl-cm
+  - name: apps-cm
     envs:
-      - .env
+      - example.env
     literals:
-      - ASSET_URL="tnps" # <
+#      - ASSET_URL="tnps" # <
       - APP_MAIN_ENV=staging
-      - APP_FORCE_HTTPS="true"
+#      - APP_FORCE_HTTPS="true"
 
 replacements:
   - source:
-      name: larvl-svc
+      name: apps-svc
       kind: Service
       fieldPath: metadata.name
     targets:
       - select:
-          name: larvl-ingress
+          name: apps-ingress
           kind: Ingress
         fieldPaths:
           - spec.rules.0.http.paths.*.backend.service.name
@@ -42,17 +42,17 @@ replacements:
       fieldPath: metadata.name
     targets:
       - select:
-          name: larvl-cm
+          name: apps-cm
           kind: ConfigMap
         fieldPaths:
           - data.DB_HOST
   - source:
-      name: larvl-cm
+      name: apps-cm
       kind: ConfigMap
       fieldPath: metadata.name
     targets:
       - select:
-          name: larvl-deploy
+          name: apps-deploy
         fieldPaths:
           - spec.template.spec.containers.[name=^apps$].envFrom.0.configMapRef.name
       - select:
@@ -62,9 +62,9 @@ replacements:
 
 images:
   - name: apps-image-latest
-    newName: registry.gitlab.com/smartaxiatakh/devops/smart-web-site/tnps/tnps
-    newTag: staging-latest
-    digest: sha256:ea57f43bf2a48a571e874fec33d0967f07310a80854cd1387bfa48f073b76591
+    newName: registry.gitlab.com/smartaxiatakh/devops/smartnas/services/gamification-service/staging
+    newTag: UID-10
+    digest: sha256:c4c734d5dc55ec95392883bc4f8badf454dd4deb667c1502086cca427eee6288
   - name: smartnas3-busybox
     newName: busybox
     newTag: 1.36.1-glibc

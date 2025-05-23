@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: larvl-svc
+  name: apps-svc
   labels:
     tier: backend
 spec:
