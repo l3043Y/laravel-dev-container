@@ -1,5 +1,6 @@
-ARG BASE_IMAGE='serversideup/php'
+#ARG BASE_IMAGE_VARS='unit'
 ARG BASE_IMAGE_VARS='fpm-nginx-bookworm'
+ARG BASE_IMAGE='serversideup/php'
 ARG PHP_VERSION='8.3'
 FROM ${BASE_IMAGE}:${PHP_VERSION}-${BASE_IMAGE_VARS} AS base
 ARG CI_JOB_TOKEN

@@ -3,106 +3,156 @@ stages:
   - deploy
 
 variables:
-  PROJECT_NAME: tnps  # <project_name>
-  GIT_PROD_BRANCH: master  # ex. master
-  GIT_STAGING_BRANCH: staging  # ex. staging
+  PROJECT_NAME: project-name-slug  # <project_name>
+  GIT_PROD_BRANCH: main  # ex. master
+  GIT_STAGING_BRANCH: develop  # ex. staging
+  GITOPS_GIT: smartaxiatakh/devops/git-ops-repository.git
+  KUZT_MANIFEST_PATH: $PROJECT_NAME/overlays
+  DOCKER_FILE: docker/Dockerfile
+  GITOPS_BRANCH: main
 
   DOCKER_LOGIN_SCRIPT: docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-  DOCKER_FILE: docker/Dockerfile
-  REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE
-  KUZT_MANIFEST_PATH: $PROJECT_NAME/overlays
-  MANUAL_TRIGGER: "false"
-  GITLAB_BUILD_CACHE_PATH: .docker_cache
+  GITLAB_BUILD_WATCH_FILES: "$DOCKER_FILE|composer.json|.gitlab-ci.yml"
+  GITLAB_BUILD_CACHED: "true"
   GITLAB_CI_USER: ci-operator
   GITLAB_CI_EMAIL: ci-operator
-  GITOPS_BRANCH: main
-  GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/smartaxiatakh/devops/smart-web-site/deployment.git
+  GITOPS_REPO_URL: https://$GITLAB_CI_USER:$GITOPS_CI_TOKEN@$CI_SERVER_HOST/$GITOPS_GIT
   GIT_APPS_REPO_URL: https://$GITLAB_CI_USER:$GIT_APPS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
-  UNATTENDED: "false"
+  GITLAB_API_PROJECT: $CI_API_V4_URL/projects/$CI_PROJECT_ID
+  REGISTRY_BASE_IMAGE: $CI_REGISTRY_IMAGE
+
 
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" # && $CI_OPEN_MERGE_REQUESTS == "0"
+    - if: $CI_PIPELINE_SOURCE == "push"
       variables:
         AUTO_CANCEL: "true"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       variables:
         AUTO_CANCEL: "true"
-    - if: $CI_PIPELINE_SOURCE == "web"  # This allows manual trigger
-      when: always  # Manual trigger for pipeline
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: always
       variables:
         AUTO_CANCEL: "true"
-        MANUAL_TRIGGER: "true"
-        UNATTENDED: "true"
 
 .auto_cancel:
   interruptible: true
   variables:
     GIT_STRATEGY: fetch
 
-build-docker-image:
+.build-docker-image:
   image: docker:stable
   stage: build
   extends: .auto_cancel
-  cache:
-    - key:
-        files:
-          - $DOCKER_FILE
-          - composer.lock
-      paths:
-        - $GITLAB_BUILD_CACHE_PATH
-  rules:
-    - if: $MANUAL_TRIGGER == "true"
-    - if: $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH
-    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
   services:
     - docker:dind
-  before_script:
-    - $DOCKER_LOGIN_SCRIPT
+  script:
     - |
-      if [ "$CI_COMMIT_REF_NAME" == "$GIT_PROD_BRANCH" ]; then
-        export PIPELINE_ENV="production"
-      elif [ "$CI_COMMIT_REF_NAME" == "$GIT_STAGING_BRANCH" ]; then
-        export PIPELINE_ENV="staging"
-      else
-        export PIPELINE_ENV="env"
-      fi
-    - |
-      export TAG_IID=UID-$CI_PIPELINE_IID
-      export IMAGE_NAME=$REGISTRY_BASE_IMAGE/$PIPELINE_ENV
+      $DOCKER_LOGIN_SCRIPT
+      apk update && apk add git curl jq
+      export TAG_IID=IID-$CI_PIPELINE_IID
+      export IMAGE_NAME=$REGISTRY_BASE_IMAGE/$CI_ENVIRONMENT_NAME
+      export IMAGE_PRE_BUILD_LATEST=$REGISTRY_BASE_IMAGE/prebuild-$CI_ENVIRONMENT_NAME:latest
       export DOCKER_BUILDKIT=1
       export BUILDKIT_PROGRESS=plain
       export BUILDKIT_INLINE_CACHE=1
-  script:
-    - mkdir -p ${GITLAB_BUILD_CACHE_PATH}
     - |
-      if [ -f ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar ]; then
-        echo "Loading cached image..."
-        docker load -i ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar
-        echo "Image loaded successfully!"
-        rm -rf ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
-        echo "Cache dir cleaned up successfully!"
+      if docker pull $IMAGE_PRE_BUILD_LATEST || true; then
+        if docker image inspect $IMAGE_PRE_BUILD_LATEST > /dev/null 2>&1; then
+          echo "Prebuild image exists." | tee -a pipeline_log.txt
+          export PREBUILD_EXIST=true
+        else
+          echo "Prebuild image does not exist." | tee -a pipeline_log.txt
+          export PREBUILD_EXIST=false
+        fi
       else
-        echo "No cache found, building from scratch..."
+        echo "Docker pull prebuild failed." | tee -a pipeline_log.txt
+        export PREBUILD_EXIST=false
       fi
     - |
-      echo ">>> Run building image..." | tee -a pipeline_log.txt
-      docker build \
-      --cache-from $IMAGE_NAME:latest \
-      --build-arg BUILDKIT_INLINE_CACHE=1 \
-      --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN \
-      --target production \
-      --tag $IMAGE_NAME:latest \
-      --tag $IMAGE_NAME:$TAG_IID \
-      --file $DOCKER_FILE \
-      "."
+      curl_cmd="curl --header \"JOB-TOKEN: $CI_JOB_TOKEN\" $GITLAB_API_PROJECT/environments"
+      json_data=$(eval $curl_cmd)
+      env_id=$(echo "$json_data" | jq ".[] | select(.name == \"$CI_ENVIRONMENT_NAME\") | .id")
+
+      curl_cmd="curl --header \"JOB-TOKEN: $CI_JOB_TOKEN\" $GITLAB_API_PROJECT/environments/$env_id"
+      json_data=$(eval $curl_cmd)
+      PREVIOUS_RELEASE_COMMIT=$(echo "$json_data" | jq -r '.last_deployment.sha' || true)
+
+      echo "CI_ENVIRONMENT_NAME: $CI_ENVIRONMENT_NAME,\nCI_COMMIT_SHA: $CI_COMMIT_SHA,\nPREVIOUS_RELEASE_COMMIT: $PREVIOUS_RELEASE_COMMIT"
+      export FILE_CHANGES=$(git diff --name-only $CI_COMMIT_SHA $PREVIOUS_RELEASE_COMMIT)
+      echo "Watch files: $GITLAB_BUILD_WATCH_FILES" | tee -a pipeline_log.txt
+      echo "File changes:" | tee -a pipeline_log.txt
+      echo $FILE_CHANGES | tee -a pipeline_log.txt
+    - |
+      if [[ "$GITLAB_BUILD_CACHED" == "false" ]]; then
+        echo "GITLAB_BUILD_CACHED: false" | tee -a pipeline_log.txt
+        export FULL_BUILD=true
+      elif [ "$PREBUILD_EXIST" = false ]; then
+        echo "PREBUILD_EXIST: false" | tee -a pipeline_log.txt
+        export FULL_BUILD=true
+      elif [[ -z "$FILE_CHANGES" ]]; then
+        export FULL_BUILD=false
+      elif echo $FILE_CHANGES | grep -qE "$WATCH_FILES"; then
+        echo "Watch files changed" | tee -a pipeline_log.txt
+        export FULL_BUILD=true
+      else
+        echo "Watch files no changes detected in $GITLAB_BUILD_WATCH_FILES" | tee -a pipeline_log.txt
+        export FULL_BUILD=false
+      fi
+    - |
+      echo "Run building image..." | tee -a pipeline_log.txt
+      if [ "$FULL_BUILD" = true ] ; then
+        echo "Building prebuild image..." | tee -a pipeline_log.txt
+        docker build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN \
+        --target prebuild \
+        --tag $IMAGE_PRE_BUILD_LATEST \
+        --file "$DOCKER_FILE" \
+        "."
+
+        echo "Building production image..." | tee -a pipeline_log.txt
+        docker build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN \
+        --target production \
+        --tag $IMAGE_NAME:latest \
+        --tag $IMAGE_NAME:$TAG_IID \
+        --file "$DOCKER_FILE" \
+        "."
+
+        docker push $IMAGE_PRE_BUILD_LATEST
+      else
+        echo "Building production image from prebuild..." | tee -a pipeline_log.txt
+        PREBUILD_IMAGE_NAME="$IMAGE_PRE_BUILD_LATEST"
+        OUTPUT_DOCKERFILE="Dockerfile"
+        echo "Generating Dockerfile: $OUTPUT_DOCKERFILE"
+        echo "Using PREBUILD_IMAGE: $PREBUILD_IMAGE_NAME"
+
+        echo "FROM ${PREBUILD_IMAGE_NAME}" > "$OUTPUT_DOCKERFILE"
+        echo "WORKDIR /var/www/html" >> "$OUTPUT_DOCKERFILE"
+        echo "ENV PHP_OPCACHE_ENABLE=1" >> "$OUTPUT_DOCKERFILE"
+        echo "COPY --chown=www-data:www-data . ." >> "$OUTPUT_DOCKERFILE"
+        echo "" >> "$OUTPUT_DOCKERFILE"
+        echo "USER www-data" >> "$OUTPUT_DOCKERFILE"
+
+        echo "Dockerfile generated successfully!"
+        echo "--- Content of $OUTPUT_DOCKERFILE ---"
+        cat "$OUTPUT_DOCKERFILE"
+        echo "-----------------------------------"
+
+        docker build \
+        --tag $IMAGE_NAME:latest \
+        --tag $IMAGE_NAME:$TAG_IID \
+        "."
+      fi
+
       docker push $IMAGE_NAME:$TAG_IID
       docker push $IMAGE_NAME:latest
-      docker save $IMAGE_NAME:latest > ${GITLAB_BUILD_CACHE_PATH}/image_cache.tar || true
       export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_NAME:latest | cut -d '@' -f 2)
       echo "Image build pushed successfully!" | tee -a pipeline_log.txt
     - |
-      echo "PIPELINE_ENV=$PIPELINE_ENV" >> build_vars.env
+      echo "PIPELINE_ENV=$CI_ENVIRONMENT_NAME" >> build_vars.env
       echo "REGISTRY_IMAGE_URL=$IMAGE_NAME" >> build_vars.env
       echo "TAG_IID=$TAG_IID" >> build_vars.env
       echo "DIGEST=$DIGEST" >> build_vars.env
@@ -118,8 +168,6 @@ build-docker-image:
     GIT_STRATEGY: clone
   before_script:
     - |
-      echo ">>> Build Variables"
-      cat build_vars.env || true
       source build_vars.env
     - |
       git config --global user.name "$GITLAB_CI_USER"
@@ -133,8 +181,8 @@ build-docker-image:
   script:
     - git clone $GITOPS_REPO_URL gitops_repo && cd gitops_repo
     - |
-      export TARGET_PATH="$KUZT_MANIFEST_PATH/$PIPELINE_ENV/kustomization.yaml"
-      awk -f $KUZT_MANIFEST_PATH/$PIPELINE_ENV/update_digest.awk $TARGET_PATH > temp
+      export TARGET_PATH="$KUZT_MANIFEST_PATH/$CI_ENVIRONMENT_NAME/kustomization.yaml"
+      awk -f $KUZT_MANIFEST_PATH/$CI_ENVIRONMENT_NAME/update_digest.awk $TARGET_PATH > temp
       mv temp $TARGET_PATH
     - |
       git add $TARGET_PATH
@@ -144,6 +192,13 @@ build-docker-image:
       git tag -a "$IMAGE_RELEASE_TAG_IID" -m "Version $IMAGE_RELEASE_TAG_IID" || true
       git push origin $IMAGE_RELEASE_TAG_IID || true
 
+build-staging:
+  extends: .build-docker-image
+  environment:
+    name: staging
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
+
 deploy-staging:
   extends: .deploy
   when: always
@@ -151,9 +206,10 @@ deploy-staging:
     name: staging
   rules:
     - if: $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH
-    - if: '$UNATTENDED == "true" && $CI_COMMIT_REF_NAME == $GIT_STAGING_BRANCH'
   needs:
-    - job: build-docker-image
+    - job: build-staging
+  dependencies:
+    - build-staging
 
 deploy-production:
   extends: .deploy
@@ -162,6 +218,5 @@ deploy-production:
     name: production
   rules:
     - if: $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH
-    - if: '$UNATTENDED == "true" && $CI_COMMIT_REF_NAME == $GIT_PROD_BRANCH'
   needs:
-    - job: build-docker-image
+    - job: build-staging
