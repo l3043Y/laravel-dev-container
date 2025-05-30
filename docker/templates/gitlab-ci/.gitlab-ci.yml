@@ -78,7 +78,7 @@ workflow:
       json_data=$(eval $curl_cmd)
       PREVIOUS_RELEASE_COMMIT=$(echo "$json_data" | jq -r '.last_deployment.sha' || true)
 
-      echo "CI_ENVIRONMENT_NAME: $CI_ENVIRONMENT_NAME,\nCI_COMMIT_SHA: $CI_COMMIT_SHA,\nPREVIOUS_RELEASE_COMMIT: $PREVIOUS_RELEASE_COMMIT"
+      echo -e "CI_ENVIRONMENT_NAME: $CI_ENVIRONMENT_NAME,\nCI_COMMIT_SHA: $CI_COMMIT_SHA,\nPREVIOUS_RELEASE_COMMIT: $PREVIOUS_RELEASE_COMMIT"
       export FILE_CHANGES=$(git diff --name-only $CI_COMMIT_SHA $PREVIOUS_RELEASE_COMMIT)
       echo "Watch files: $GITLAB_BUILD_WATCH_FILES" | tee -a pipeline_log.txt
       echo "File changes:" | tee -a pipeline_log.txt
